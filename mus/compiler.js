@@ -1,29 +1,77 @@
-﻿var endTime = function (time, expr) {
-    if(expr.tag === 'seq') {
-        return endTime(endTime(time, expr.left) , expr.right);
-    } else if(expr.tag === 'note' || expr.tag === 'rest') {
-        return time + expr.dur;
-    } else if(expr.tag === 'par') {
-        return time + Math.max(endTime(time, expr.left),
-                               endTime(time, expr.right));
+﻿var endTime = function (time, exp) {
+    switch(exp) {
+        case "note":
+            return time + exp.dur;
+            break;
+        case "rest":
+            return time + exp.dur;
+            break;
+        case "seq":
+            return endTime(endTime(time, exp.left) , exp.right);
+            break;
+        case "par":
+            return time + Math.max(endTime(time, exp.left),
+                                   endTime(time, exp.right));
+            break;
+        case "repeat":
+            return time + endTime(time, exp.section) * exp.count;
+            break;
     }
-};       
+};
+
+var octave = function(p) {
+    if(p.length === 2) {
+        //e.g. c3
+        return parseInt(p.charAt(1));
+    } else {
+        //e.g. c#3
+        return parseInt(p.charAt(2));
+    }
+}
+
+var letter = function(p) {
+    // http://midikits.net23.net/midi_analyser/midi_note_numbers_for_octaves.htm
+    var trans = { 'c' : 0, 'c#' : 1, 'd' : 2, 'd#' : 3, 'e' : 4, 'f' : 5, 'f#' : 6, 'g' : 7, 'g#' : 8, 'a' : 9, 'a#' : 10, 'b' : 11};
+    
+    if(p.length === 2) {
+        //e.g. c3
+        return trans[p.charAt(0)];
+    } else {
+        //e.g. c#3
+        return trans[p.substring(0,1)];
+    }
+}
+
+var convertPitch = function(p) {
+    return 12 + 12 * octave(p) + letter(p);
+}
+
+var repeat = function(arr, times) {
+    if(times < 1) {
+        return [];
+    }
+    return arr.concat(repeat(arr,times-1));
+}
 
 var compileH = function (time, exp) {
     var l;
     var r;
-    if(exp.tag === 'note') {
-        return [{tag: 'note', pitch: exp.pitch, start: time, dur: exp.dur}];
-    } else if(exp.tag === 'rest') {
-        return [{tag: 'rest', start: time, dur: exp.dur}];
-    } else if(exp.tag === 'seq') {  
-        l = compileH(time, exp.left);
-        r = compileH(endTime(time, exp.left), exp.right);
-        return l.concat(r);
-    } else if(exp.tag === 'par') {
-        l = compileH(time, exp.left);
-        r = compileH(time, exp.right);
-        return l.concat(r);
+        switch(exp) {
+        case "note":
+            return [{tag: 'note', pitch: convertPitch(exp.pitch), start: time, dur: exp.dur}];
+            break;
+        case "rest":
+            return [{tag: 'rest', start: time, dur: exp.dur}];
+            break;
+        case "seq":
+            return compileH(time, exp.left).concat(compileH(endTime(time, exp.left), exp.right));
+            break;
+        case "par":
+            return compileH(time, exp.left).concat(compileH(time, exp.right));
+            break;
+        case "repeat":
+            return repeat(compileH(time, exp.section), exp.count);
+            break;
     }
 };
 
