@@ -1,5 +1,5 @@
 ﻿var endTime = function (time, exp) {
-    switch(exp) {
+    switch(exp.tag) {
         case "note":
             return time + exp.dur;
             break;
@@ -54,9 +54,7 @@ var repeat = function(arr, times) {
 }
 
 var compileH = function (time, exp) {
-    var l;
-    var r;
-        switch(exp) {
+    switch(exp.tag) {
         case "note":
             return [{tag: 'note', pitch: convertPitch(exp.pitch), start: time, dur: exp.dur}];
             break;
@@ -72,6 +70,8 @@ var compileH = function (time, exp) {
         case "repeat":
             return repeat(compileH(time, exp.section), exp.count);
             break;
+        default:
+            console.log("Unknown tag");
     }
 };
 
@@ -79,6 +79,8 @@ var compileH = function (time, exp) {
 var compile = function (musexpr) {
     return compileH(0,musexpr);
 };
+
+var simple = { tag: 'note', pitch: 'c1', dur: 23 };
 
 var melody_mus = 
     { tag: 'seq',
@@ -91,5 +93,24 @@ var melody_mus =
          left: { tag: 'note', pitch: 'c4', dur: 500 },
          right: { tag: 'note', pitch: 'd4', dur: 500 } } };
 
+var melody_mus2 = 
+    { tag: 'seq',
+      left: 
+       { tag: 'repeat',
+         section: { tag: 'seq',
+                    left: { tag: 'note', pitch: 'a4', dur: 250 },
+                    right: { tag: 'note', pitch: 'b4', dur: 250 } },
+         count: 4 },
+      right:
+       { tag: 'seq',
+         left: { tag: 'note', pitch: 'c4', dur: 500 },
+         right: { tag: 'note', pitch: 'd4', dur: 500 } } };
+
+console.log(simple);
+console.log(compile(simple));
+         
 console.log(melody_mus);
 console.log(compile(melody_mus));
+
+console.log(melody_mus2);
+console.log(compile(melody_mus2));
